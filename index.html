@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vinco Mechanical â 3D Hero Scene</title>
+<title>Vinco Mechanical - 3D Hero Scene</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #0A0A0A; }
@@ -20,16 +20,16 @@
 </style>
 </head>
 <body>
-<div id="loading">Loading Sceneâ¦</div>
+<div id="loading">Loading Scene...</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 /* ============================================================
-   VINCO MECHANICAL â 3D NYC ROOFTOP HERO
+   VINCO MECHANICAL - 3D NYC ROOFTOP HERO
    Stylized rooftop with VRF condensers, airflow particles,
    premium lighting. Embeddable via iframe.
    ============================================================ */
 
-// ââ SCENE SETUP ââââââââââââââââââââââââââââââââââââââââââââââ
+// -- SCENE SETUP ----------------------------------------------
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0A0A0A);
 scene.fog = new THREE.FogExp2(0x0A0A0A, 0.012);
@@ -43,4 +43,481 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.toneMapping = THREE.ACESFilmicToneMapp
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+document.body.appendChild(renderer.domElement);
+
+// -- MATERIALS ------------------------------------------------
+const matConcrete = new THREE.MeshStandardMaterial({
+  color: 0x2A2A2A, roughness: 0.95, metalness: 0.0
+});
+const matConcreteLight = new THREE.MeshStandardMaterial({
+  color: 0x3A3A3A, roughness: 0.9, metalness: 0.0
+});
+const matMetal = new THREE.MeshStandardMaterial({
+  color: 0x8A8A8A, roughness: 0.3, metalness: 0.85
+});
+const matMetalDark = new THREE.MeshStandardMaterial({
+  color: 0x4A4A4A, roughness: 0.4, metalness: 0.8
+});
+const matGrill = new THREE.MeshStandardMaterial({
+  color: 0x333333, roughness: 0.5, metalness: 0.6
+});
+const matLED = new THREE.MeshStandardMaterial({
+  color: 0x00FF88, emissive: 0x00FF88, emissiveIntensity: 0.6, roughness: 0.2, metalness: 0.3
+});
+const matLEDBlue = new THREE.MeshStandardMaterial({
+  color: 0x4488FF, emissive: 0x4488FF, emissiveIntensity: 0.4, roughness: 0.2, metalness: 0.3
+});
+const matPipe = new THREE.MeshStandardMaterial({
+  color: 0x6A6A6A, roughness: 0.35, metalness: 0.75
+});
+const matRoofSurface = new THREE.MeshStandardMaterial({
+  color: 0x1A1A1A, roughness: 0.98, metalness: 0.0
+});
+
+// -- ROOFTOP PLATFORM ----------------------------------------
+function buildRooftop() {
+  const group = new THREE.Group();
+
+  // Main roof surface
+  const roofGeo = new THREE.BoxGeometry(30, 0.4, 20);
+  const roof = new THREE.Mesh(roofGeo, matRoofSurface);
+  roof.position.y = -0.2;
+  roof.receiveShadow = true;
+  group.add(roof);
+
+  // Parapet walls
+  const parapetGeo = new THREE.BoxGeometry(30, 1.2, 0.3);
+  const parapetFront = new THREE.Mesh(parapetGeo, matConcrete);
+  parapetFront.position.set(0, 0.6, -10);
+  parapetFront.castShadow = true;
+  group.add(parapetFront);
+
+  const parapetBack = parapetFront.clone();
+  parapetBack.position.z = 10;
+  group.add(parapetBack);
+
+  const parapetSideGeo = new THREE.BoxGeometry(0.3, 1.2, 20);
+  const parapetLeft = new THREE.Mesh(parapetSideGeo, matConcrete);
+  parapetLeft.position.set(-15, 0.6, 0);
+  parapetLeft.castShadow = true;
+  group.add(parapetLeft);
+
+  const parapetRight = parapetLeft.clone();
+  parapetRight.position.x = 15;
+  group.add(parapetRight);
+
+  // Roof details - vents, access hatch
+  const ventGeo = new THREE.BoxGeometry(1, 0.6, 1);
+  for (let i = 0; i < 3; i++) {
+    const vent = new THREE.Mesh(ventGeo, matConcreteLight);
+    vent.position.set(-10 + i * 4, 0.3, -7);
+    vent.castShadow = true;
+    group.add(vent);
+  }
+
+  // Access hatch
+  const hatchGeo = new THREE.BoxGeometry(2.5, 2.2, 2.5);
+  const hatch = new THREE.Mesh(hatchGeo, matConcrete);
+  hatch.position.set(-8, 1.1, 5);
+  hatch.castShadow = true;
+  group.add(hatch);
+
+  // Hatch door
+  const doorGeo = new THREE.BoxGeometry(1.2, 1.8, 0.05);
+  const door = new THREE.Mesh(doorGeo, matMetalDark);
+  door.position.set(-8, 0.9, 3.73);
+  group.add(door);
+
+  return group;
+}
+
+// -- VRF CONDENSER UNIT --------------------------------------
+function buildCondenser(scale = 1) {
+  const group = new THREE.Group();
+
+  // Main body - rectangular cabinet
+  const bodyGeo = new THREE.BoxGeometry(2.2 * scale, 1.8 * scale, 0.9 * scale);
+  const body = new THREE.Mesh(bodyGeo, matMetal);
+  body.position.y = 0.9 * scale;
+  body.castShadow = true;
+  body.receiveShadow = true;
+  group.add(body);
+
+  // Top fan shroud (cylinder)
+  const shroudGeo = new THREE.CylinderGeometry(0.6 * scale, 0.6 * scale, 0.15 * scale, 24);
+  const shroud = new THREE.Mesh(shroudGeo, matMetalDark);
+  shroud.position.set(-0.4 * scale, 1.85 * scale, 0);
+  group.add(shroud);
+
+  const shroud2 = shroud.clone();
+  shroud2.position.x = 0.4 * scale;
+  group.add(shroud2);
+
+  // Fan blades (inside shrouds)
+  const fanGroup1 = buildFan(0.5 * scale);
+  fanGroup1.position.set(-0.4 * scale, 1.93 * scale, 0);
+  group.add(fanGroup1);
+
+  const fanGroup2 = buildFan(0.5 * scale);
+  fanGroup2.position.set(0.4 * scale, 1.93 * scale, 0);
+  fanGroup2.rotation.y = Math.PI / 4;
+  group.add(fanGroup2);
+
+  // Grill front
+  for (let i = 0; i < 8; i++) {
+    const slat = new THREE.Mesh(
+      new THREE.BoxGeometry(2.1 * scale, 0.02, 0.05),
+      matGrill
+    );
+    slat.position.set(0, 0.25 * scale + i * 0.19 * scale, 0.48 * scale);
+    group.add(slat);
+  }
+
+  // Status LED
+  const ledGeo = new THREE.SphereGeometry(0.04 * scale, 8, 8);
+  const led = new THREE.Mesh(ledGeo, matLED);
+  led.position.set(0.9 * scale, 1.5 * scale, 0.46 * scale);
+  group.add(led);
+
+  // LED glow
+  const glowGeo = new THREE.SphereGeometry(0.12 * scale, 8, 8);
+  const glowMat = new THREE.MeshBasicMaterial({ color: 0x00FF88, transparent: true, opacity: 0.15 });
+  const glow = new THREE.Mesh(glowGeo, glowMat);
+  glow.position.copy(led.position);
+  group.add(glow);
+
+  // Base / mounting feet
+  const footGeo = new THREE.BoxGeometry(0.3 * scale, 0.15 * scale, 0.9 * scale);
+  const footL = new THREE.Mesh(footGeo, matMetalDark);
+  footL.position.set(-0.8 * scale, 0.075 * scale, 0);
+  group.add(footL);
+  const footR = footL.clone();
+  footR.position.x = 0.8 * scale;
+  group.add(footR);
+
+  // Refrigerant pipes (side)
+  const pipeGeo = new THREE.CylinderGeometry(0.05 * scale, 0.05 * scale, 1.2 * scale, 8);
+  const pipe1 = new THREE.Mesh(pipeGeo, matPipe);
+  pipe1.position.set(1.15 * scale, 0.8 * scale, -0.15 * scale);
+  group.add(pipe1);
+  const pipe2 = pipe1.clone();
+  pipe2.position.z = 0.15 * scale;
+  group.add(pipe2);
+
+  return group;
+}
+
+function buildFan(radius) {
+  const group = new THREE.Group();
+  const bladeGeo = new THREE.BoxGeometry(radius * 1.6, 0.02, radius * 0.25);
+  for (let i = 0; i < 3; i++) {
+    const blade = new THREE.Mesh(bladeGeo, matMetalDark);
+    blade.rotation.y = (i / 3) * Math.PI * 2;
+    group.add(blade);
+  }
+  // Hub
+  const hubGeo = new THREE.CylinderGeometry(radius * 0.15, radius * 0.15, 0.06, 12);
+  const hub = new THREE.Mesh(hubGeo, matMetal);
+  group.add(hub);
+  return group;
+}
+
+// -- PIPING RUNS ---------------------------------------------
+function buildPipeRun(start, end, radius = 0.06) {
+  const dir = new THREE.Vector3().subVectors(end, start);
+  const length = dir.length();
+  const geo = new THREE.CylinderGeometry(radius, radius, length, 8);
+  const pipe = new THREE.Mesh(geo, matPipe);
+  pipe.position.copy(start).add(end).multiplyScalar(0.5);
+  pipe.lookAt(end);
+  pipe.rotateX(Math.PI / 2);
+  pipe.castShadow = true;
+  return pipe;
+}
+
+// -- BUILD SCENE ---------------------------------------------
+const rooftop = buildRooftop();
+scene.add(rooftop);
+
+// Place condenser units
+const condensers = [];
+const fanGroups = [];
+
+const unitPositions = [
+  { x: -2, z: -2, rot: 0, s: 1 },
+  { x: 2, z: -2, rot: 0, s: 1 },
+  { x: 6, z: -2, rot: 0, s: 1 },
+  { x: -2, z: 3, rot: Math.PI, s: 0.85 },
+  { x: 2, z: 3, rot: Math.PI, s: 0.85 },
+];
+
+unitPositions.forEach((p, i) => {
+  const c = buildCondenser(p.s);
+  c.position.set(p.x, 0, p.z);
+  c.rotation.y = p.rot;
+  scene.add(c);
+  condensers.push(c);
+
+  // Collect fan groups for animation
+  c.traverse(child => {
+    if (child.children && child.children.length === 4) {
+      // fan groups have 3 blades + 1 hub
+      const isHub = child.children.some(c2 => c2.geometry && c2.geometry.type === 'CylinderGeometry');
+      const hasBlades = child.children.filter(c2 => c2.geometry && c2.geometry.type === 'BoxGeometry').length === 3;
+      if (isHub && hasBlades) {
+        fanGroups.push({ mesh: child, speed: 1.5 + Math.random() * 1.5 });
+      }
+    }
+  });
+});
+
+// Connect units with pipes
+const pipeRuns = [];
+pipeRuns.push(buildPipeRun(new THREE.Vector3(-0.85, 0.8, -2), new THREE.Vector3(0.85, 0.8, -2)));
+pipeRuns.push(buildPipeRun(new THREE.Vector3(3.15, 0.8, -2), new THREE.Vector3(4.85, 0.8, -2)));
+pipeRuns.push(buildPipeRun(new THREE.Vector3(-0.85, 0.8, 3), new THREE.Vector3(0.85, 0.8, 3)));
+
+// Vertical pipe down from middle unit
+pipeRuns.push(buildPipeRun(new THREE.Vector3(2, 0.8, -2), new THREE.Vector3(2, 0, -2)));
+
+pipeRuns.forEach(p => scene.add(p));
+
+// -- PARTICLES (Airflow) -------------------------------------
+const particleCount = 600;
+const particleGeo = new THREE.BufferGeometry();
+const particlePositions = new Float32Array(particleCount * 3);
+const particleSpeeds = new Float32Array(particleCount);
+const particleOpacities = new Float32Array(particleCount);
+
+for (let i = 0; i < particleCount; i++) {
+  particlePositions[i * 3]     = (Math.random() - 0.5) * 20;
+  particlePositions[i * 3 + 1] = 1.5 + Math.random() * 6;
+  particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 14;
+  particleSpeeds[i] = 0.005 + Math.random() * 0.02;
+  particleOpacities[i] = 0.1 + Math.random() * 0.4;
+}
+
+particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+
+const particleMat = new THREE.PointsMaterial({
+  color: 0x88CCFF,
+  size: 0.06,
+  transparent: true,
+  opacity: 0.3,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false,
+  sizeAttenuation: true
+});
+
+const particles = new THREE.Points(particleGeo, particleMat);
+scene.add(particles);
+
+// Warm exhaust particles rising from condensers
+const exhaustCount = 200;
+const exhaustGeo = new THREE.BufferGeometry();
+const exhaustPos = new Float32Array(exhaustCount * 3);
+const exhaustSpeeds = new Float32Array(exhaustCount);
+
+for (let i = 0; i < exhaustCount; i++) {
+  const unitIdx = Math.floor(Math.random() * unitPositions.length);
+  const p = unitPositions[unitIdx];
+  exhaustPos[i * 3]     = p.x + (Math.random() - 0.5) * 1.5;
+  exhaustPos[i * 3 + 1] = 1.8 * p.s + Math.random() * 2;
+  exhaustPos[i * 3 + 2] = p.z + (Math.random() - 0.5) * 0.5;
+  exhaustSpeeds[i] = 0.008 + Math.random() * 0.015;
+}
+
+exhaustGeo.setAttribute('position', new THREE.BufferAttribute(exhaustPos, 3));
+
+const exhaustMat = new THREE.PointsMaterial({
+  color: 0xFFAA44,
+  size: 0.04,
+  transparent: true,
+  opacity: 0.2,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false,
+  sizeAttenuation: true
+});
+
+const exhaustParticles = new THREE.Points(exhaustGeo, exhaustMat);
+scene.add(exhaustParticles);
+
+// -- CITY SKYLINE (background silhouettes) -------------------
+function buildSkyline() {
+  const group = new THREE.Group();
+  const buildingMat = new THREE.MeshStandardMaterial({
+    color: 0x111111, roughness: 1.0, metalness: 0.0
+  });
+
+  const buildings = [
+    { x: -20, z: -18, w: 3, h: 15, d: 3 },
+    { x: -15, z: -20, w: 2, h: 22, d: 2 },
+    { x: -12, z: -17, w: 4, h: 10, d: 3 },
+    { x: -8, z: -22, w: 2.5, h: 28, d: 2.5 },
+    { x: -4, z: -19, w: 3, h: 18, d: 3 },
+    { x: 0, z: -21, w: 2, h: 35, d: 2 },
+    { x: 4, z: -18, w: 3.5, h: 14, d: 3 },
+    { x: 8, z: -20, w: 2, h: 25, d: 2 },
+    { x: 12, z: -17, w: 3, h: 12, d: 4 },
+    { x: 16, z: -21, w: 2, h: 20, d: 2.5 },
+    { x: 20, z: -19, w: 3, h: 16, d: 3 },
+    // Side buildings
+    { x: -22, z: -10, w: 2, h: 10, d: 4 },
+    { x: 22, z: -10, w: 2, h: 12, d: 4 },
+    { x: -22, z: 0, w: 2.5, h: 8, d: 5 },
+    { x: 22, z: 2, w: 2, h: 9, d: 5 },
+  ];
+
+  buildings.forEach(b => {
+    const geo = new THREE.BoxGeometry(b.w, b.h, b.d);
+    const mesh = new THREE.Mesh(geo, buildingMat);
+    mesh.position.set(b.x, b.h / 2, b.z);
+    group.add(mesh);
+
+    // Window lights (small emissive dots)
+    const windowMat = new THREE.MeshBasicMaterial({
+      color: 0xFFDD88, transparent: true, opacity: 0.3
+    });
+    for (let wy = 2; wy < b.h - 1; wy += 2) {
+      for (let wx = -b.w / 2 + 0.5; wx < b.w / 2; wx += 0.8) {
+        if (Math.random() > 0.4) continue;
+        const wGeo = new THREE.PlaneGeometry(0.3, 0.4);
+        const wMesh = new THREE.Mesh(wGeo, windowMat);
+        wMesh.position.set(b.x + wx, wy, b.z + b.d / 2 + 0.01);
+        group.add(wMesh);
+      }
+    }
+  });
+
+  return group;
+}
+
+scene.add(buildSkyline());
+
+// -- LIGHTING ------------------------------------------------
+// Key light - warm, from upper right
+const keyLight = new THREE.DirectionalLight(0xFFEEDD, 0.8);
+keyLight.position.set(10, 15, 8);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(2048, 2048);
+keyLight.shadow.camera.near = 1;
+keyLight.shadow.camera.far = 50;
+keyLight.shadow.camera.left = -20;
+keyLight.shadow.camera.right = 20;
+keyLight.shadow.camera.top = 20;
+keyLight.shadow.camera.bottom = -20;
+keyLight.shadow.bias = -0.001;
+scene.add(keyLight);
+
+// Fill light - cool blue from left
+const fillLight = new THREE.DirectionalLight(0x4488FF, 0.3);
+fillLight.position.set(-8, 6, -5);
+scene.add(fillLight);
+
+// Rim light - accent from behind
+const rimLight = new THREE.DirectionalLight(0xFFFFFF, 0.4);
+rimLight.position.set(-5, 8, -12);
+scene.add(rimLight);
+
+// Ambient - very subtle
+const ambient = new THREE.AmbientLight(0x222233, 0.4);
+scene.add(ambient);
+
+// Subtle green point light near condensers (LED glow effect)
+const greenPoint = new THREE.PointLight(0x00FF88, 0.3, 8);
+greenPoint.position.set(2, 2, -1);
+scene.add(greenPoint);
+
+// Warm accent near roof edge
+const warmPoint = new THREE.PointLight(0xFFAA44, 0.2, 10);
+warmPoint.position.set(-5, 3, -5);
+scene.add(warmPoint);
+
+// -- CAMERA ORBIT --------------------------------------------
+let cameraAngle = 0;
+const cameraRadius = 22;
+const cameraHeight = 9;
+const cameraTargetY = 2;
+const orbitSpeed = 0.06; // degrees per frame roughly
+
+// -- ANIMATION LOOP ------------------------------------------
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const elapsed = clock.getElapsedTime();
+  const delta = clock.getDelta();
+
+  // Slow camera orbit
+  cameraAngle += orbitSpeed * 0.01;
+  camera.position.x = Math.cos(cameraAngle) * cameraRadius;
+  camera.position.z = Math.sin(cameraAngle) * cameraRadius;
+  camera.position.y = cameraHeight + Math.sin(elapsed * 0.15) * 0.5;
+  camera.lookAt(0, cameraTargetY, 0);
+
+  // Rotate fans
+  fanGroups.forEach(fg => {
+    fg.mesh.rotation.y += fg.speed * 0.02;
+  });
+
+  // Animate airflow particles
+  const positions = particles.geometry.attributes.position.array;
+  for (let i = 0; i < particleCount; i++) {
+    positions[i * 3 + 1] += particleSpeeds[i];
+    // Gentle drift
+    positions[i * 3] += Math.sin(elapsed + i) * 0.001;
+
+    // Reset if too high
+    if (positions[i * 3 + 1] > 8) {
+      positions[i * 3 + 1] = 1.5;
+      positions[i * 3] = (Math.random() - 0.5) * 20;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 14;
+    }
+  }
+  particles.geometry.attributes.position.needsUpdate = true;
+
+  // Animate exhaust particles
+  const exhPos = exhaustParticles.geometry.attributes.position.array;
+  for (let i = 0; i < exhaustCount; i++) {
+    exhPos[i * 3 + 1] += exhaustSpeeds[i];
+    exhPos[i * 3] += Math.sin(elapsed * 2 + i * 0.5) * 0.002;
+
+    if (exhPos[i * 3 + 1] > 5) {
+      const ui = Math.floor(Math.random() * unitPositions.length);
+      const up = unitPositions[ui];
+      exhPos[i * 3] = up.x + (Math.random() - 0.5) * 1.5;
+      exhPos[i * 3 + 1] = 1.8;
+      exhPos[i * 3 + 2] = up.z + (Math.random() - 0.5) * 0.5;
+    }
+  }
+  exhaustParticles.geometry.attributes.position.needsUpdate = true;
+
+  // Pulse LED glow
+  greenPoint.intensity = 0.25 + Math.sin(elapsed * 2) * 0.1;
+
+  // Pulse particle opacity subtly
+  particleMat.opacity = 0.25 + Math.sin(elapsed * 0.5) * 0.08;
+  exhaustMat.opacity = 0.15 + Math.sin(elapsed * 0.7) * 0.05;
+
+  renderer.render(scene, camera);
+}
+
+// -- RESIZE HANDLER ------------------------------------------
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// -- START ---------------------------------------------------
+animate();
+
+// Hide loading
+setTimeout(() => {
+  document.getElementById('loading').classList.add('hidden');
+}, 800);
+</script>
+</body>
+</html>
